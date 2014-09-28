@@ -9,6 +9,7 @@ float parse_graph(){
 	ssize_t read;
 	const char* delim = "\n";
 	char * token = NULL;
+	int n, p;
 
 	fp = fopen("graph0.txt", "r");
 	if (fp == NULL){
@@ -27,6 +28,9 @@ float parse_graph(){
 		else{
 			printf("token %s\n",token);
 			token = strtok(NULL,delim);
+			n = (int)(*(token +0));
+			printf("n = %d", n);
+	
 		}
 	}
 
@@ -37,6 +41,6 @@ float parse_graph(){
 }
 
 void main(){
-	getcpu_speed();
+	parse_graph();
 
 }
