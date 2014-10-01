@@ -1,3 +1,5 @@
+//build trans closure must execute after set_range
+//set_range locks , then build trans closure unlocks after exectuion to keep the cycle
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
