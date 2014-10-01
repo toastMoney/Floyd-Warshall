@@ -3,7 +3,60 @@
 #include <string.h>
 #include <pthread.h>
 
-int num_vertices, num_processes;
+struct range_{
+    int start;
+    int end;
+};
+typedef struct range_ range;
+
+int num_vertices, num_threads, mod_count, position, vert_per_thread, global_start, global_end;
+
+int** graph;
+
+range* create_range(){
+    range *temp_range = malloc(sizeof(range));
+    temp_range->start = 0;
+    temp_range->end = 0;
+    position = 0;
+    return temp_range;
+}
+
+range* set_range(range* arg_range){
+
+    if(arg_range->end == 0){
+        arg_range->start = 0;
+        arg_range->end = (arg_range->start + vert_per_thread - 1);
+        position = arg_range->end;
+
+        printf("check range #1// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
+        if(mod_count > 0){
+            arg_range->end++;
+            mod_count--;
+            position = arg_range->end;
+        }
+    printf("check range #2// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
+    return arg_range;
+    }
+
+    else{
+        printf("check range #3// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
+        arg_range->start = position + 1;
+        arg_range->end = (arg_range->start + vert_per_thread - 1);
+        position = arg_range->end;
+        if(mod_count > 0){
+            arg_range->end++;
+            mod_count--;
+            position = arg_range->end;
+        }
+
+        printf("check range #4// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
+    }
+
+
+    return arg_range;
+}
+
+
 
 int** initialize_graph(num_vertices){
     int i,j;
@@ -49,8 +102,9 @@ int** build_graph(){
     ssize_t read;
     const char* delim = "\n";
     char *token = NULL;
-    int **graph = NULL;
+    graph = NULL;
     int count;
+    count = 0;
 
     fp = fopen("graph1.txt", "r");
     if (fp == NULL){
@@ -60,9 +114,9 @@ int** build_graph(){
     while ((read = getline(&line, &len, fp)) != -1) {
         token = strtok(line, delim);
         if(strlen(token) == 1){
-            printf("token integer %d\n",atoi(token));
+            printf("token integer %d\t\t count: %d\n",atoi(token), count);
             if(count == 0){
-                num_processes = atoi(token);
+                num_threads = atoi(token);
                 count++;
             }
             else{
@@ -92,25 +146,23 @@ int** build_graph(){
     return graph;
 }
 
-void *build_trans_closure(){
-
-    int** result_graph;
-    result_graph = build_graph();
-
+void *build_trans_closure(void* arguments){
+    range *args = arguments;
     int i, j, k;
+    printf("arg-start: %d\t\targ-end: %d\n\n", args->start, args->end);
     for(k = 0; k < num_vertices; k++){
-        for(i = 0; i < num_vertices; i++){
+        for(i = args->start; i <= args->end; i++){
             for(j = 0; j < num_vertices; j++){
-                if(result_graph[i][k] == 1 && result_graph[k][j] == 1)
-                    result_graph[i][j] = 1;
+                if(graph[i][k] == 1 && graph[k][j] == 1)
+                    graph[i][j] = 1;
             }
         }
     }
 
     printf("\n\ngraph after transitive closure:\n");
-    print_graph(result_graph);
+    print_graph(graph);
     printf("Num vertices %d\n",num_vertices);
-    printf("Num processes: %d\n",num_processes);
+    printf("Num processes: %d\n",num_threads);
     return NULL;
 }
 
@@ -122,21 +174,44 @@ void *build_trans_closure(){
 
 int main(int argc, char **argv) {
     build_graph();
+    //printf("num_threads #1: %d\n", num_threads);
     int i, error;
-    pthread_t thread_pool[num_processes]; // Array of threads
+    pthread_t thread_pool[num_threads]; // Array of threads
+    if(num_threads)
+        vert_per_thread = num_vertices/num_threads;
+    //printf("num_vertices: %d\t\tnum_threads: %d\t\tvert_per_threads: %d\n", num_vertices, num_threads, vert_per_thread);
 
-    for (i = 0; i < num_processes; i++) {
-        error = pthread_create(&thread_pool[i], NULL, &build_trans_closure, (int*)i);
+    if(num_threads == 0)
+        mod_count = 0;
+    else
+        mod_count = num_vertices % num_threads;
+    range *current;
+    //printf("num_threads #2: %d\n", num_threads);
+
+    current = create_range();
+    //printf("start(fuck): %d\t\tend(fuck): %d\t\t\n", current->start, current->end);
+
+    for (i = 0; i < num_threads; i++) {
+        if(current){
+            current = set_range(current);
+            printf("start: %d\t\tend: %d", current->start, current->end);
+        }
+        else
+            printf("fuck off\n");
+        printf("current->start: %d\t\tcurrent->end: %d\n\n", current->start, current->end);
+        error = pthread_create(&thread_pool[i], NULL, &build_trans_closure,(void*) current);
         if (error) {
             printf("Error creating phtread\n");
             return error;
         }
+        printf("thread #: %d\t\tstart: %d\t\tend: %d\n\n", i, current->start, current->end);
     }
 
-    for (i = 0; i < num_processes; i++) {
+    for (i = 0; i < num_threads; i++) {
         pthread_join(thread_pool[i], NULL);
     }
-
     return 0;
+    //return pthread_join(&thread_pool[1], NULL);
+
 }
 
