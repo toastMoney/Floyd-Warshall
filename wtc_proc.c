@@ -1,5 +1,3 @@
-//build trans closure must execute after set_range
-//set_range locks , then build trans closure unlocks after exectuion to keep the cycle
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,7 +16,7 @@ int** graph;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 range* create_range(){
-    range *temp_range = malloc(sizeof(range)+ 5000);
+    range *temp_range = malloc(sizeof(range));
     temp_range->start = 0;
     temp_range->end = 0;
     position = 0;
@@ -67,6 +65,15 @@ range* set_range(range* arg_range){
 }
 
 
+void print_graph(int** graph){
+    int i,j;
+    for(i=0; i<num_vertices; i++){
+        for(j=0; j<num_vertices; j++){
+            printf("%d",graph[i][j]);
+        }
+        printf("\n");
+    }
+}
 
 int** initialize_graph(num_vertices){
     int i,j;
@@ -86,23 +93,8 @@ int** initialize_graph(num_vertices){
             }
         }
     }
-    int k,l;
-    for(k=0; k<num_vertices; k++){
-        for(l=0; l<num_vertices; l++){
-            printf("%d",ret[k][l]);
-        }
-        printf("\n");
-    }
+    print_graph(ret);
     return ret;
-}
-void print_graph(int** graph){
-    int i,j;
-    for(i=0; i<num_vertices; i++){
-        for(j=0; j<num_vertices; j++){
-            printf("%d",graph[i][j]);
-        }
-        printf("\n");
-    }
 }
 
 int** build_graph(){
@@ -160,9 +152,7 @@ void *build_trans_closure(void* arguments){
     range *args = arguments;
     int i, j;
     printf("arg-start: %d\t\targ-end: %d\n\n", args->start, args->end);
-    //for(k = 0; k < num_vertices; k++){
     for(i = args->start; i <= args->end; i++){
-        printf("ha cha cha cha!");
         for(j = 0; j < num_vertices; j++){
             if(graph[i][global_k] == 1 && graph[global_k][j] == 1)
                 graph[i][j] = 1;
@@ -172,41 +162,29 @@ void *build_trans_closure(void* arguments){
 
     printf("\n\ngraph after transitive closure:\n");
     print_graph(graph);
-    printf("Num vertices %d\n",num_vertices);
-    printf("Num threads: %d\n",num_threads);
     pthread_mutex_unlock(&lock);
     return NULL;
 }
 
-//void main(){
-//    //int** graph1;
-//    //graph1 = build_graph();
-//    build_graph();
-//    build_trans_closure();
 
 int main(int argc, char **argv) {
     build_graph();
-    printf("num_threads #1: %d\n", num_threads);
     int i, error, k, x, rc;
     pthread_t thread_pool[num_threads]; // Array of threads
     if(num_threads)
         vert_per_thread = num_vertices/num_threads;
-    //printf("num_vertices: %d\t\tnum_threads: %d\t\tvert_per_threads: %d\n", num_vertices, num_threads, vert_per_thread);
 
     if(num_threads == 0)
         mod_count = 0;
     else
         mod_count = num_vertices % num_threads;
     range *current;
-    //printf("num_threads #2: %d\n", num_threads);
 
     current = create_range();
-    printf("start(fuck): %d\t\tend(fuck): %d\t\t\n", current->start, current->end);
 
-    for(k = 0; k < num_vertices; k++){
-        global_k = k;
+    for(global_k = 0; global_k < num_vertices; global_k++){
         current = reset_range(current);
-        printf("k: %d\t\tglobal k: %d\n\n", k, global_k);
+
         for (i = 0; i < num_threads; i++) {
             if(current){
 
@@ -215,7 +193,7 @@ int main(int argc, char **argv) {
                 printf("start: %d\t\tend: %d\n", current->start, current->end);
             }
             else
-                printf("fuck off\n");
+                printf("current not initialized");
             printf("current->start: %d\t\tcurrent->end: %d\n\n", current->start, current->end);
             error = pthread_create(&thread_pool[i], NULL, &build_trans_closure,(void*) current);
             if (error) {
@@ -230,7 +208,6 @@ int main(int argc, char **argv) {
     }
 
     return 0;
-    //return pthread_join(&thread_pool[1], NULL);
 
 }
 
