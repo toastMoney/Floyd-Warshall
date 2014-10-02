@@ -11,16 +11,24 @@ struct range_{
 };
 typedef struct range_ range;
 
-int num_vertices, num_threads, mod_count, position, vert_per_thread, global_start, global_end;
+int num_vertices, num_threads, mod_count, position, vert_per_thread, global_k;
 
 int** graph;
 
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
 range* create_range(){
-    range *temp_range = malloc(sizeof(range));
+    range *temp_range = malloc(sizeof(range)+ 5000);
     temp_range->start = 0;
     temp_range->end = 0;
     position = 0;
     return temp_range;
+}
+
+range* reset_range(range* arg_range){
+    arg_range->start = 0;
+    arg_range->end = 0;
+    return arg_range;
 }
 
 range* set_range(range* arg_range){
@@ -36,8 +44,8 @@ range* set_range(range* arg_range){
             mod_count--;
             position = arg_range->end;
         }
-    printf("check range #2// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
-    return arg_range;
+        printf("check range #2// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
+        return arg_range;
     }
 
     else{
@@ -150,21 +158,23 @@ int** build_graph(){
 
 void *build_trans_closure(void* arguments){
     range *args = arguments;
-    int i, j, k;
+    int i, j;
     printf("arg-start: %d\t\targ-end: %d\n\n", args->start, args->end);
-    for(k = 0; k < num_vertices; k++){
-        for(i = args->start; i <= args->end; i++){
-            for(j = 0; j < num_vertices; j++){
-                if(graph[i][k] == 1 && graph[k][j] == 1)
-                    graph[i][j] = 1;
-            }
+    //for(k = 0; k < num_vertices; k++){
+    for(i = args->start; i <= args->end; i++){
+        printf("ha cha cha cha!");
+        for(j = 0; j < num_vertices; j++){
+            if(graph[i][global_k] == 1 && graph[global_k][j] == 1)
+                graph[i][j] = 1;
         }
     }
+
 
     printf("\n\ngraph after transitive closure:\n");
     print_graph(graph);
     printf("Num vertices %d\n",num_vertices);
-    printf("Num processes: %d\n",num_threads);
+    printf("Num threads: %d\n",num_threads);
+    pthread_mutex_unlock(&lock);
     return NULL;
 }
 
@@ -176,8 +186,8 @@ void *build_trans_closure(void* arguments){
 
 int main(int argc, char **argv) {
     build_graph();
-    //printf("num_threads #1: %d\n", num_threads);
-    int i, error;
+    printf("num_threads #1: %d\n", num_threads);
+    int i, error, k, x, rc;
     pthread_t thread_pool[num_threads]; // Array of threads
     if(num_threads)
         vert_per_thread = num_vertices/num_threads;
@@ -191,27 +201,34 @@ int main(int argc, char **argv) {
     //printf("num_threads #2: %d\n", num_threads);
 
     current = create_range();
-    //printf("start(fuck): %d\t\tend(fuck): %d\t\t\n", current->start, current->end);
+    printf("start(fuck): %d\t\tend(fuck): %d\t\t\n", current->start, current->end);
 
-    for (i = 0; i < num_threads; i++) {
-        if(current){
-            current = set_range(current);
-            printf("start: %d\t\tend: %d", current->start, current->end);
-        }
-        else
-            printf("fuck off\n");
-        printf("current->start: %d\t\tcurrent->end: %d\n\n", current->start, current->end);
-        error = pthread_create(&thread_pool[i], NULL, &build_trans_closure,(void*) current);
-        if (error) {
-            printf("Error creating phtread\n");
-            return error;
+    for(k = 0; k < num_vertices; k++){
+        global_k = k;
+        current = reset_range(current);
+        printf("k: %d\t\tglobal k: %d\n\n", k, global_k);
+        for (i = 0; i < num_threads; i++) {
+            if(current){
+
+                rc = pthread_mutex_lock(&lock);
+                current = set_range(current);
+                printf("start: %d\t\tend: %d\n", current->start, current->end);
+            }
+            else
+                printf("fuck off\n");
+            printf("current->start: %d\t\tcurrent->end: %d\n\n", current->start, current->end);
+            error = pthread_create(&thread_pool[i], NULL, &build_trans_closure,(void*) current);
+            if (error) {
+                printf("Error creating phtread\n");
+                return error;
+            }
+
         }
         printf("thread #: %d\t\tstart: %d\t\tend: %d\n\n", i, current->start, current->end);
+        for(x = 0; x < num_threads; x++)
+            pthread_join(thread_pool[x], NULL);
     }
 
-    for (i = 0; i < num_threads; i++) {
-        pthread_join(thread_pool[i], NULL);
-    }
     return 0;
     //return pthread_join(&thread_pool[1], NULL);
 
