@@ -111,7 +111,7 @@ void build_graph(char* file_name){
 
     while ((read = getline(&line, &len, fp)) != -1) {
         token = strtok(line, delim);
-        if(strlen(token) == 1){
+        if(count == 0 || count == 1){
             if(count == 0){
                 num_processes = atoi(token);
                 count++;
@@ -119,6 +119,7 @@ void build_graph(char* file_name){
             else{
                 num_vertices = atoi(token);
                 initialize_graph(num_vertices);
+                count++;
             }
             token = strtok(NULL,delim);
         }

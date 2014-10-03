@@ -159,7 +159,7 @@ int** build_graph(char *file_name){
 
     while ((read = getline(&line, &len, fp)) != -1) {
         token = strtok(line, delim);
-        if(strlen(token) == 1){
+        if(count == 0 || count == 1){
             if(count == 0){
                 num_threads = atoi(token);
                 count++;
@@ -167,6 +167,7 @@ int** build_graph(char *file_name){
             else{
                 num_vertices = atoi(token);
                 graph = initialize_graph(num_vertices);
+                count++;
             }
             token = strtok(NULL,delim);
         }
