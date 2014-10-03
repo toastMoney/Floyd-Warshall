@@ -206,7 +206,7 @@ int main(int argc, char **argv) {
     print_graph();
     printf("\n\nEdges of transitive closure: \n");
     print_result();
-    printf("\nSeconds for multi-process version(): %f\n",((cycles)/(.000001*cpu_speed)));
+    printf("\nmicroseconds for multi-process version(): %f\n",((cycles)/(.000001*cpu_speed)));
     printf("\nNumber of cycles for multi-process version: %d\n",cycles);
     return 0;
 }
