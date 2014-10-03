@@ -76,6 +76,17 @@ void print_graph(int** graph){
     }
 }
 
+void print_result(){
+    int i,j;
+    for(i=0; i<num_vertices; i++){
+        for(j=0; j<num_vertices; j++){
+            if(graph[i][j] == 1 && i!=j){
+                printf("%d %d\n",i+1,j+1);
+            }
+        }
+    }
+}
+
 int** initialize_graph(num_vertices){
     int i,j;
 
@@ -98,7 +109,7 @@ int** initialize_graph(num_vertices){
     return ret;
 }
 
-int** build_graph(){
+int** build_graph(char *file_name){
     FILE *fp;
     char *line = NULL;
     size_t len = 0;
@@ -109,7 +120,7 @@ int** build_graph(){
     int count;
     count = 0;
 
-    fp = fopen("graph1.txt", "r");
+    fp = fopen(file_name, "r");
     if (fp == NULL){
         return 0;
     }
@@ -169,7 +180,12 @@ void *build_trans_closure(void* arguments){
 
 
 int main(int argc, char **argv) {
-    build_graph();
+    if(argc != 2){
+        printf("Invalid number of arguments\n");
+        printf("\nUsage: ./a.out <graph.in>\n");
+        return 0;
+    }
+    build_graph(argv[1]);
     int i, error, k, x, rc;
     pthread_t thread_pool[num_threads]; // Array of threads
     if(num_threads)
@@ -207,6 +223,7 @@ int main(int argc, char **argv) {
         for(x = 0; x < num_threads; x++)
             pthread_join(thread_pool[x], NULL);
     }
+    print_result();
 
     return 0;
 
