@@ -10,10 +10,12 @@
 #include <sys/signal.h>
 #include <signal.h>
 
-int num_vertices, num_processes, vert_per_process,mod_count, shmid, position, count;
+int num_vertices, num_processes, vert_per_process,mod_count, shmid;// position, count, start, end;
 int* graph;
 
-struct range_{
+void print_graph(void);
+
+/*struct range_{
     int start;
     int end;
 };
@@ -22,7 +24,6 @@ typedef struct range_ range;
 
 range *current;
 
-void print_graph(void);
 
 range* create_range(){
     range *temp_range = malloc(sizeof(range));
@@ -69,7 +70,7 @@ range* set_range(range* arg_range){
         printf("check range #4// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
     }
     return arg_range;
-}
+}*/
 void initialize_graph(int num_ver){
     int i,index;
     int n = num_ver*num_ver;
@@ -107,7 +108,7 @@ void build_graph(){
     char *token = NULL;
     int count;
 
-    fp = fopen("graph1.txt", "r");
+    fp = fopen("graph0.txt", "r");
     if (fp == NULL){
         return;
     }
@@ -148,8 +149,7 @@ void build_graph(){
     return;
 }
 
-void build_trans_closure(int k,int start,int end){
-
+void build_trans_closure(int k, int start, int end){//,int start,int end){
     int i, j;
     for(i = start; i <= end; i++){
         for(j = 1; j <= num_vertices; j++){
@@ -171,19 +171,11 @@ void build_trans_closure(int k,int start,int end){
           */
 }
 
-//void main(){
-//    //int** graph1;
-//    //graph1 = build_graph();
-//    build_graph();
-//    build_trans_closure();
-
 int main(int argc, char **argv) {
     key_t shmkey;
-    //pid_t[] pid;
-    int i,j,k;
+    int i,j,k, start, end;
     int status;
 
-    //sem_t *sem;
     /* initialize a shared variable in shared memory */
     shmkey = ftok ("/dev/null", 5);       /* valid directory name and a number */
     printf ("shmkey for p = %d\n", shmkey);
@@ -198,7 +190,6 @@ int main(int argc, char **argv) {
     build_graph();
     print_graph();
     pid_t pid[num_processes];
-    count = num_processes;
     if(num_processes)
         vert_per_process = num_vertices/num_processes;
 
@@ -206,17 +197,28 @@ int main(int argc, char **argv) {
         mod_count = 0;
     else
         mod_count = num_vertices % num_processes;
-    current = create_range();
+    //current = create_range();
     for(k = 1; k<=num_vertices; k++){
-        current = reset_range(current);
-        for(i = 0; i<num_processes; i++){
-            if(pid[i]= fork() == 0){
+        //current = reset_range(current);
+        start = 1;
+        end = 1;
 
+        for(i = 1; i<=num_processes; i++){
+            if((pid[i]= fork()) == 0){
+                printf("getpid %d has just been created\nppid: %d\n", getpid(), getppid());
+                start = vert_per_process * i;//position;
+                end = start + vert_per_process - 1;
+                if(mod_count > 0){
+                    end++;
+                    mod_count--;
+                }
+                printf("pid: %d\t\tstart: %d\t\tend: %d\t\tnum_vertices:%d\n", getpid(), start, end, num_vertices);
+                build_trans_closure(k,(start - vert_per_process + 1), end);//,current->start,current->end);
 
-                current = set_range(current);
+                //printf("current->start: %d\t\tcurrent->end: %d\n\n", current->start, current->end);
+                //current = set_range(current);
 
-            printf("current->start: %d\t\tcurrent->end: %d\n\n", current->start, current->end);
-                build_trans_closure(k,current->start,current->end);
+                printf("current->start: %d\t\tcurrent->end: %d\n\n", start, end);
                 exit(EXIT_SUCCESS);
             }
 
@@ -226,10 +228,12 @@ int main(int argc, char **argv) {
 
         //kill(getpid(), SIGINT);
         for(j=0; j<num_processes; j++){
+            printf("pid %d going into waiting\n", getpid());
             wait(&status);
         }
     }
 
+    print_graph();
 
     return 0;
 }
