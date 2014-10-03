@@ -16,61 +16,61 @@ int* graph;
 void print_graph(void);
 
 /*struct range_{
-    int start;
-    int end;
-};
-typedef struct range_ range;
+  int start;
+  int end;
+  };
+  typedef struct range_ range;
 
 
-range *current;
+  range *current;
 
 
-range* create_range(){
-    range *temp_range = malloc(sizeof(range));
-    temp_range->start = 1;
-    temp_range->end = 1;
-    position = 1;
-    return temp_range;
-}
+  range* create_range(){
+  range *temp_range = malloc(sizeof(range));
+  temp_range->start = 1;
+  temp_range->end = 1;
+  position = 1;
+  return temp_range;
+  }
 
-range* reset_range(range* arg_range){
-    arg_range->start = 1;
-    arg_range->end = 1;
-    return arg_range;
-}
+  range* reset_range(range* arg_range){
+  arg_range->start = 1;
+  arg_range->end = 1;
+  return arg_range;
+  }
 
-range* set_range(range* arg_range){
+  range* set_range(range* arg_range){
 
-    if(arg_range->end == 1){
-        arg_range->start = 1;
-        arg_range->end = (arg_range->start + vert_per_process - 1);
-        position = arg_range->end;
+  if(arg_range->end == 1){
+  arg_range->start = 1;
+  arg_range->end = (arg_range->start + vert_per_process - 1);
+  position = arg_range->end;
 
-        printf("check range #1// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
-        if(mod_count > 0){
-            arg_range->end++;
-            mod_count--;
-            position = arg_range->end;
-        }
-        printf("check range #2// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
-        return arg_range;
-    }
+  printf("check range #1// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
+  if(mod_count > 0){
+  arg_range->end++;
+  mod_count--;
+  position = arg_range->end;
+  }
+  printf("check range #2// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
+  return arg_range;
+  }
 
-    else{
-        printf("check range #3// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
-        arg_range->start = position + 1;
-        arg_range->end = (arg_range->start + vert_per_process - 1);
-        position = arg_range->end;
-        if(mod_count > 0){
-            arg_range->end++;
-            mod_count--;
-            position = arg_range->end;
-        }
+  else{
+  printf("check range #3// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
+  arg_range->start = position + 1;
+  arg_range->end = (arg_range->start + vert_per_process - 1);
+  position = arg_range->end;
+  if(mod_count > 0){
+  arg_range->end++;
+  mod_count--;
+  position = arg_range->end;
+  }
 
-        printf("check range #4// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
-    }
-    return arg_range;
-}*/
+  printf("check range #4// start: %d\t\tend: %d\n", arg_range->start, arg_range->end);
+  }
+  return arg_range;
+  }*/
 void initialize_graph(int num_ver){
     int i,index;
     int n = num_ver*num_ver;
@@ -99,7 +99,26 @@ void print_graph(){
     printf("\n");
 }
 
-void build_graph(){
+void print_result(){
+    int i,j;
+    int n = num_vertices*num_vertices;
+
+    for(i=1; i<=n; i++){
+        if(graph[i] == 1 ){
+            if(i%num_vertices == 0){
+                if(i/num_vertices != num_vertices){
+                    printf("%d %d\n",i/num_vertices,num_vertices);
+                }
+            }
+            else{
+                if(i/num_vertices+1 != i%num_vertices){
+                    printf("%d %d\n",i/num_vertices+1,i%num_vertices);
+                }
+            }
+        }
+    }
+}
+void build_graph(char* file_name){
     FILE *fp;
     char *line = NULL;
     size_t len = 0;
@@ -108,7 +127,7 @@ void build_graph(){
     char *token = NULL;
     int count;
 
-    fp = fopen("graph0.txt", "r");
+    fp = fopen(file_name, "r");
     if (fp == NULL){
         return;
     }
@@ -172,6 +191,11 @@ void build_trans_closure(int k, int start, int end){//,int start,int end){
 }
 
 int main(int argc, char **argv) {
+    if(argc != 2){
+        printf("Invalid number of arguments\n");
+        printf("\nUsage: ./a.out <graph.in>\n");
+        return 0;
+    }
     key_t shmkey;
     int i,j,k, start, end;
     int status;
@@ -187,7 +211,7 @@ int main(int argc, char **argv) {
         exit (1);
     }
     graph = (int*)shmat(shmid, NULL, 0);   /* attach p to shared memory */
-    build_graph();
+    build_graph(argv[1]);
     print_graph();
     pid_t pid[num_processes];
     if(num_processes)
@@ -234,6 +258,7 @@ int main(int argc, char **argv) {
     }
 
     print_graph();
+    print_result();
 
     return 0;
 }
